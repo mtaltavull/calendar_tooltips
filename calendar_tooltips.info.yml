@@ -1,0 +1,8 @@
+name: Calendar Tooltips
+type: module
+description: 'Generates a balloon with events when you hover over a day on a calendar block'
+core: 8.x
+dependencies:
+  - calendar
+  - views
+package: Date/Time

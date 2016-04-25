@@ -1,0 +1,10 @@
+calendar_tooltip.qtip2:
+  version: 2.2.1
+  css:
+    theme:
+      https://cdn.jsdelivr.net/qtip2/2.2.1/basic/jquery.qtip.min.css: { type: external, minified: true }
+  js:
+    https://cdn.jsdelivr.net/qtip2/2.2.1/basic/jquery.qtip.min.js: { type: external, minified: true }
+    js/qtip.js: {}
+  dependencies:
+    - core/jquery

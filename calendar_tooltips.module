@@ -1,0 +1,112 @@
+<?php
+use Drupal\calendar\CalendarHelper;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function calendar_tooltips_page_attachments(array &$page) {
+  $page['#attached']['library'][] = 'calendar_tooltips/calendar_tooltip.qtip2';
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function calendar_tooltips_theme_registry_alter(&$theme_registry) {
+  // Override the theme function template_preprocess_calendar_datebox() in modules/calendar/calendar.theme.inc.
+  if (!empty($theme_registry['preprocess_calendar_datebox'])) {
+    $theme_registry['preprocess_calendar_datebox']['function'] = 'calendar_tooltips_preprocess_calendar_datebox';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function calendar_tooltips_theme ($existing, $type, $theme, $path) {
+  return [
+    'calendar_datebox' => [
+      'variables' => ['date' => NULL, 'view' => NULL, 'items' => NULL, 'selected' => NULL, 'calendar_tooltips_text' => NULL, 'has_tooltip' => '' ],
+      'template' => 'calendar-datebox',
+    ]
+  ];
+}
+
+/**
+ * Create the calendar date box.
+ */
+function calendar_tooltips_preprocess_calendar_datebox(&$vars) {
+  $date = $vars['date'];
+  $view = $vars['view'];
+  $vars['day'] = intval(substr($date, 8, 2));
+  $full_date_arg = str_replace('-', '', $date);
+  $day_url = CalendarHelper::getURLForGranularity($view, 'day', [$full_date_arg]);
+
+  if ($day_url) {
+    $vars['link'] = \Drupal::l($vars['day'],$day_url);
+  }
+  else {
+    $vars['link'] = $vars['day'];
+  }
+
+  $vars['granularity'] = $view->dateInfo->getGranularity();
+  $vars['mini'] = !empty($view->styleInfo->isMini());
+
+  if ($vars['mini']) {
+    if (!empty($vars['selected'])) {
+      $vars['class'] = 'mini-day-on';
+    }
+    else {
+      $vars['class'] = 'mini-day-off';
+    }
+  }
+  else {
+    $vars['class'] = 'day';
+  }
+
+  add_calendar_tooltip($vars, $date, $view);
+}
+
+/**
+ * Aggregate event data for each day and place in an HTML unordered list. This
+ * list will contain the tooltip content.
+ *
+ * @param $vars
+ * @param $date
+ * @param $view
+ */
+function add_calendar_tooltip(&$vars, $date, $view) {
+
+  if (!empty($vars['selected'])) {
+    $bt_text = '<ul>';
+
+    foreach ($vars['items'][$date] as $time => $results_at_that_time) {
+      foreach ($results_at_that_time as $num => $result) {
+        $rendered_fields = $result->getRenderedFields();
+        $bt_text .= '<li>';
+
+        foreach ($view->field as $name => $field) {
+          if ($field->options['exclude']) {
+            continue;
+          }
+
+          if ($field->options['label'] != '' && ($rendered_fields[$name] != '' || empty($field->options['hide_empty']))) {
+            $bt_text .= '<div class="calendar_tooltips-' . $name .
+                        '-label">' . $field->options['label'] .
+                        ( $field->options['element_label_colon'] ? ':' : '' ) . '</div>';
+          }
+
+          if ($rendered_fields[$name] != "") {
+            $bt_text .= '<div class="calendar_tooltips-' . $name .
+                        '-value">' . $rendered_fields[$name] . '</div>';
+          }
+        }
+
+        $bt_text .= '</li>';
+      }
+    }
+
+    $bt_text .= '</ul>';
+    $bt_text = '<div class="calendar_tooltips" style="display: none">' . $bt_text . '</div>';
+    $vars['calendar_tooltips_text'] = $bt_text;
+    $vars['has_tooltip'] = 'has-tooltip';
+  }
+}
